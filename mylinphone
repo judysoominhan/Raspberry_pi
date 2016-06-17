@@ -1,0 +1,24 @@
+You can now use your linphone account with these parameters:
+Sip identity : sip:judysoominhan@sip.linphone.org
+Username : judysoominhan
+Domain / Proxy : sip.linphone.org
+----------
+파일 보내주기
+scp opencv_facedetect.cpp pi@192.168.0.116:/home/pi/
+--------
+http://www.hardcopyworld.com/gnuboard5/bbs/board.php?bo_table=lecture_rpi&wr_id=18
+https://www.raspberrypi.org/forums/viewtopic.php?f=28&t=44044
+http://feelsoverygood.tistory.com/22
+
+192.169.1.41 iot_g1
+
+------
+gstreamer 프레임워크설치
+$ wget http://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.4.5.tar.xz
+$ unxz gstreamer-1.4.5.tar.xz 
+$ tar xvf gstreamer-1.4.5.tar 
+
+gstreamer 플러그인설치
+$ wget http://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.4.5.tar.xz
+$ unxz gst-plugins-base-1.4.5.tar.xz 
+$ tar xvf gst-plugins-base-1.4.5.tar

@@ -1,0 +1,58 @@
+외부 ip에서 접속 가능하도록 하기
+$ sudo vi /etc/mongodb.conf
+--> bind_ip = 0.0.0.0
+
+위의 설정파일을 바꿧으니 재시작해야함
+$ sudo /etc/init.d/mongodb restart
+
+실행
+$ mongo
+
+
+디비목록 보기
+> show databases 또는 show dbs
+local ****GB
+
+콜렉션 목록보기
+> use local(디비명)
+> show collections
+
+디비생성
+> use [디비명]
+
+콜렉션 생성
+> use [디비명]
+> db.createCollection("person[콜렉션명]", {"name": "ssum"}) 또는 > db.createCollection("person[콜렉션명]")
+
+디비삭제하기
+> use local(디비명)
+switched to db local
+> db.dropDatabase()
+
+콜렉션 삭제하기
+> use local(디비명)
+> db.[콜렉션명].drop() 또는 db.[콜렉션명].remove()
+
+
+다큐먼트 삽입하기: http://www.linuxask.com/questions/insert-a-new-document-to-mongodb
+> use local[디비명]
+> db.[콜렉션명].save({"[키]":"[값]"})
+	ex. db.person.save({"name":"ssum"})
+또는 
+> db.[콜렉션명].insert(
+   {
+      name: "sue",
+      age: 19,
+      status: "P"
+   }
+)
+
+
+다큐먼트 목록보기
+> use local
+> db.[콜렉션명].find()
+
+다큐먼트 드롭
+> use local
+> db.[콜렉션명].remove({name: "peter"})
+> db.[콜렉션명].remove({"name": "peter"})

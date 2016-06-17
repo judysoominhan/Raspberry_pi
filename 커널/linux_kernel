@@ -1,0 +1,217 @@
+pi@raspberrypi:~ $ wget https://github.com/raspberrypi/linux/archive/rpi-4.1.y.tar.gz
+
+pi@raspberrypi:~ $ tar zxvf rpi-4.1.y.tar.gz
+
+pi@raspberrypi:~ $ sudo mv linux-rpi-4.1.y /usr/src/
+pi@raspberrypi:~ $ cd /usr/src/
+pi@raspberrypi:/usr/src $ sudo ln -s linux-rpi-4.1.y linux
+
+pi@raspberrypi:~ $ sudo apt-get install libncurses5-dev
+pi@raspberrypi:~ $ sudo apt-get install bc
+
+
+pi@raspberrypi:/usr/src $ cd linux
+pi@raspberrypi:/usr/src/linux $ sudo make mrproper && sudo ARCH=arm make bcm2709_defconfig
+	  CLEAN   scripts/basic
+	  CLEAN   scripts/kconfig
+	  CLEAN   include/config include/generated
+	  HOSTCC  scripts/basic/fixdep
+	  HOSTCC  scripts/kconfig/conf.o
+	  SHIPPED scripts/kconfig/zconf.tab.c
+	  SHIPPED scripts/kconfig/zconf.lex.c
+	  SHIPPED scripts/kconfig/zconf.hash.c
+	  HOSTCC  scripts/kconfig/zconf.tab.o
+	  HOSTLD  scripts/kconfig/conf
+	#
+	# configuration written to .config
+	#
+
+pi@raspberrypi:/usr/src/linux $ cd arch/arm/include/uapi/asm/
+pi@raspberrypi:/usr/src/linux/arch/arm/include/uapi/asm $ ls
+auxvec.h     ioctls.h    mman.h         setup.h       stat.h
+byteorder.h  Kbuild      perf_regs.h    sigcontext.h  swab.h
+fcntl.h      kvm.h       posix_types.h  signal.h      unistd.h
+hwcap.h      kvm_para.h  ptrace.h       statfs.h
+pi@raspberrypi:/usr/src/linux/arch/arm/include/uapi/asm $ sudo vi unistd.h 
+-------
+<unistd.h>파일에 아래 내용 추가
+#define __NR_bpf                        (__NR_SYSCALL_BASE+386)
+#define __NR_execveat                   (__NR_SYSCALL_BASE+387)
+#define __NR_helloworld                 (__NR_SYSCALL_BASE+388)
+------
+pi@raspberrypi:~ $ cd /usr/src/linux/arch/arm/kernel/
+pi@raspberrypi:/usr/src/linux/arch/arm/kernel $ sudo vi calls.S <--수정
+----------------
+<calls.S>
+...생략
+/* 385 */       CALL(sys_memfd_create)
+                CALL(sys_bpf)
+                CALL(sys_execveat)
+                CALL(sys_helloworld)
+-------------------------
+pi@raspberrypi:/usr/src/linux/arch/arm/kernel $ cd ..
+pi@raspberrypi:/usr/src/linux/arch/arm $ cd include/asm/
+pi@raspberrypi:/usr/src/linux/arch/arm/include/asm $ sudo vi unistd.h
+<unistd.h>
+#define __NR_syscalls  (392) <-- 388에서 4를 더해준다
+
+----------------
+pi@raspberrypi:/usr/src/linux/include/linux $ sudo vi syscalls.h 
+
+<syscalls.h>
+esc--> /sys_bpf(int cmd, 엔터 하면 문서 끝으로 온다
+esc--> :se nu 하면 줄번호가 보임
+esc--> yy -> p 복붙하기
+
+881 asmlinkage long sys_bpf(int cmd, union bpf_attr *attr, unsigned int size);
+882 
+883 asmlinkage long sys_execveat(int dfd, const char __user *filename,
+884                         const char __user *const __user *argv,
+885                         const char __user *const __user *envp, int flags);
+886 
+887 asmlinkage long sys_helloworld(void);  <--맨마지막에 추가해주기
+888 #endif
+
+--------
+pi@raspberrypi:/usr/src/linux/kernel $ sudo vi helloworld.c
+<helloworld.c>
+#include <linux/kernel.h>
+
+asmlinkage long sys_helloworld(void)
+{
+        printk(KERN_INFO "Hello World!! from Linux Kernel\n");
+        return 0;
+}
+
+pi@raspberrypi:/usr/src/linux/kernel $ sudo vi Makefile 
+<Makefile>
+#
+# Makefile for the linux kernel.
+#
+
+obj-y     = fork.o exec_domain.o panic.o \
+            cpu.o exit.o softirq.o resource.o \
+            sysctl.o sysctl_binary.o capability.o ptrace.o user.o \
+            signal.o sys.o kmod.o workqueue.o pid.o task_work.o \
+            extable.o params.o \
+            kthread.o sys_ni.o nsproxy.o \
+            notifier.o ksysfs.o cred.o reboot.o \
+            async.o range.o smpboot.o helloworld.o  <--추가
+
+------------
+
+pi@raspberrypi:/usr/src/linux $ sudo make bzImage && sudo make modules && sudo make modules_install && sudo make depmod
+
+	HOSTCC  scripts/kconfig/conf.o
+	  HOSTLD  scripts/kconfig/conf
+	scripts/kconfig/conf  --silentoldconfig Kconfig
+	  CHK     include/config/kernel.release
+	  UPD     include/config/kernel.release
+	  WRAP    arch/arm/include/generated/asm/bitsperlong.h
+	  WRAP    arch/arm/include/generated/asm/cputime.h
+			..............(중략)
+
+오래걸림-->에러
+
+pi@raspberrypi:/usr/src/linux $ sudo make mrproper & sudo ARCH=arm make bcm2709_defconfig
+	[1] 15626
+	  HOSTCC  scripts/basic/fixdep
+	  CLEAN   .
+	  HOSTCC  scripts/kconfig/conf.o
+	  SHIPPED scripts/kconfig/zconf.tab.c
+	  SHIPPED scripts/kconfig/zconf.lex.c
+	  SHIPPED scripts/kconfig/zconf.hash.c
+	  HOSTCC  scripts/kconfig/zconf.tab.o
+	  CLEAN   .tmp_versions
+	  CLEAN   scripts/basic
+	  CLEAN   scripts/kconfig
+	  CLEAN   .config.old
+	/bin/sh: 1: scripts/basic/fixdep: not found
+	scripts/Makefile.host:108: recipe for target 'scripts/kconfig/zconf.tab.o' failed
+	make[1]: *** [scripts/kconfig/zconf.tab.o] Error 127
+	Makefile:541: recipe for target 'bcm2709_defconfig' failed
+	make: *** [bcm2709_defconfig] Error 2
+	[1]+  Done                    sudo make mrproper
+	
+pi@raspberrypi:/usr/src/linux $ sudo make menuconfig
+	  HOSTCC  scripts/kconfig/mconf.o
+	  HOSTCC  scripts/kconfig/lxdialog/checklist.o
+	  HOSTCC  scripts/kconfig/lxdialog/util.o
+	  HOSTCC  scripts/kconfig/lxdialog/inputbox.o
+	  HOSTCC  scripts/kconfig/lxdialog/textbox.o
+	  HOSTCC  scripts/kconfig/lxdialog/yesno.o
+	  HOSTCC  scripts/kconfig/lxdialog/menubox.o
+	  HOSTLD  scripts/kconfig/mconf
+	scripts/kconfig/mconf  Kconfig
+	configuration written to .config
+	
+	*** End of the configuration.
+	*** Execute 'make' to start the build or try 'make help'.
+
+
+----------------
+이론
+pi@raspberrypi:~$ cat /proc/devices
+Character devices:
+  1 mem
+  4 /dev/vc/0
+  4 tty
+  5 /dev/tty
+  5 /dev/console
+  5 /dev/ptmx
+  5 ttyprintk
+  7 vcs
+ 10 misc
+ 13 input
+ 14 sound
+ 29 fb
+ 81 video4linux
+ 89 i2c
+116 alsa
+128 ptm
+136 pts
+153 spi
+162 raw
+180 usb
+189 usb_device
+204 ttyAMA
+243 bcm2835-gpiomem
+244 uio
+245 media
+246 vcsm
+247 hidraw
+248 vchiq
+249 vcio
+250 vc-mem
+251 vc-cma
+252 bsg
+253 watchdog
+254 rtc
+
+Block devices:
+  1 ramdisk
+259 blkext
+  7 loop
+  8 sd
+ 65 sd
+ 66 sd
+ 67 sd
+ 68 sd
+ 69 sd
+ 70 sd
+ 71 sd
+128 sd
+129 sd
+130 sd
+131 sd
+132 sd
+133 sd
+134 sd
+135 sd
+179 mmc
+
+-----------
+커널버젼 보기
+pi@raspberrypi:~$ uname -a
+Linux raspberrypi 4.4.13-v7+ #894 SMP Mon Jun 13 13:13:27 BST 2016 armv7l GNU/Linux
+
